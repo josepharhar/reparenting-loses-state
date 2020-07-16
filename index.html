@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+
+<style>
+button {
+  font-size: 20px;
+}
+.script-view {
+  background-color: lightgray;
+  white-space: pre;
+  font-family: monospace;
+}
+h2 {
+  margin-top: 30px;
+  padding-top: 5px;
+  border-bottom: 0.5px dashed lightgray;
+}
+</style>
+
+
+<h1>Examples of how reparenting elements loses state</h1>
+
+
+<h2>Reparenting iframes</h2>
+<p>clicking the "reparent" button will remove and then immediately re-append the iframe in the same spot. The iframe will reload, which is undesired in this case.</p>
+<div class=script-view id=reparenting-iframes-script-text></div>
+<br>
+<script id=reparenting-iframes-script>
+  const iframeContainer = document.createElement('div');
+  const iframe = document.createElement('iframe');
+  iframe.src = 'https://en.wikipedia.org';
+  iframeContainer.appendChild(iframe);
+
+  const reparentButton = document.createElement('button');
+  reparentButton.textContent = 'reparent';
+  reparentButton.onclick = () => {
+    iframe.remove();
+    iframeContainer.appendChild(iframe);
+  };
+  document.body.appendChild(reparentButton);
+  document.body.appendChild(iframeContainer);
+
+</script>
+
+<script>
+  const scriptView = document.getElementById('reparenting-iframes-script-text');
+  const script = document.getElementById('reparenting-iframes-script');
+  scriptView.textContent = script.textContent;
+</script>
