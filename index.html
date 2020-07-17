@@ -1,5 +1,7 @@
 <!DOCTYPE html>
 
+<title>reparenting</title>
+
 <style>
 button {
   font-size: 20px;
@@ -8,6 +10,7 @@ button {
   background-color: lightgray;
   white-space: pre;
   font-family: monospace;
+  margin: 10px;
 }
 h2 {
   margin-top: 30px;
@@ -17,13 +20,12 @@ h2 {
 </style>
 
 
-<h1>Examples of how reparenting elements loses state</h1>
+<h1>Examples of lost state when reparenting elements</h1>
+<p>Various components of state can be lost when an element is reparented atomically in javascript. This is a common use case in React, where elements might get shuffled around within one parent element. Discussion in <a href="https://github.com/whatwg/html/issues/5484">this spec issue</a>.</p>
 
 
-<h2>Reparenting iframes</h2>
-<p>clicking the "reparent" button will remove and then immediately re-append the iframe in the same spot. The iframe will reload, which is undesired in this case.</p>
-<div class=script-view id=reparenting-iframes-script-text></div>
-<br>
+<h2>Reloading iframes</h2>
+<p>Clicking the "reparent" button will remove and then immediately re-append the iframe in the same spot. The iframe will reload, which is undesired in this case.</p>
 <script id=reparenting-iframes-script>
   const iframeContainer = document.createElement('div');
   const iframe = document.createElement('iframe');
@@ -40,9 +42,69 @@ h2 {
   document.body.appendChild(iframeContainer);
 
 </script>
-
+<div class=script-view id=reparenting-iframes-script-text></div>
 <script>
-  const scriptView = document.getElementById('reparenting-iframes-script-text');
-  const script = document.getElementById('reparenting-iframes-script');
-  scriptView.textContent = script.textContent;
+  document.getElementById('reparenting-iframes-script-text').textContent =
+    document.getElementById('reparenting-iframes-script').textContent;
+</script>
+
+
+<h2>Loss of selection and focus in &lt;input&gt;s</h2>
+<p>Reparenting &lt;input&gt; elements causes them to lose focus and selection. Focus and select some text in the following input element and then press the enter key - the event listener will reparent the element, showing how focus and selection are lost.</p>
+<p>For input types which support the selection API, this can be fixed by manually saving and restoring selection. For those which don't, such as type=number, selection cannot be restored.</p>
+<script id=input-script>
+  const inputContainer = document.createElement('div');
+  document.body.appendChild(inputContainer);
+
+  const input = document.createElement('input');
+  input.style.width = '300px';
+  input.value = 'select me and press enter';
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      input.remove();
+      inputContainer.appendChild(input);
+    }
+  });
+  inputContainer.appendChild(input);
+
+</script>
+<div class=script-view id=input-script-text></div>
+<script>
+  document.getElementById('input-script-text').textContent =
+    document.getElementById('input-script').textContent;
+</script>
+
+
+<h2>CSS transitions restarting</h2>
+<p>Reparenting elements currently undergoing a CSS transition causes the transition to restart. Click the below element to reparent it and see what happens to the CSS transition.</p>
+<style id=transitionStyle>
+#animation {
+  background-color: red;
+  color: black;
+  width: 200px;
+  transition: width 2s;
+}
+#animation:hover {
+  width: 800px;
+}
+</style>
+<script id=transitionScript>
+  const animationContainer = document.createElement('div');
+  document.body.appendChild(animationContainer);
+
+  const animation = document.createElement('div');
+  animation.textContent = 'click me';
+  animation.id = 'animation';
+  animation.onclick = () => {
+    animation.remove();
+    animationContainer.appendChild(animation);
+  }
+  animationContainer.appendChild(animation);
+</script>
+<div class=script-view id=transitionScriptText></div>
+<script>
+  transitionScriptText.textContent =
+    `<style>${transitionStyle.textContent}</style>
+<script>\n${transitionScript.textContent}<\/script>`;
 </script>
