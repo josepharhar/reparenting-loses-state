@@ -11,11 +11,18 @@ button {
   white-space: pre;
   font-family: monospace;
   margin: 10px;
+  display: inline-block;
 }
 h2 {
   margin-top: 30px;
   padding-top: 5px;
   border-bottom: 0.5px dashed lightgray;
+}
+h4 {
+  margin-bottom: 0px;
+}
+p {
+  width: 500px;
 }
 </style>
 
@@ -33,7 +40,7 @@ h2 {
   iframeContainer.appendChild(iframe);
 
   const reparentButton = document.createElement('button');
-  reparentButton.textContent = 'reparent';
+  reparentButton.textContent = 'click to reparent';
   reparentButton.onclick = () => {
     iframe.remove();
     iframeContainer.appendChild(iframe);
@@ -43,6 +50,8 @@ h2 {
 
 </script>
 <div class=script-view id=reparenting-iframes-script-text></div>
+<h4>Workaround</h4>
+<p>Some <a href="https://github.com/whatwg/html/issues/5484#issuecomment-620481794">clever use of shadowdom</a> can be used to move an iframe around by changing which slot the iframe is inserted into. However, this is somewhat limited because it requires the part of the dom which the iframe is moving around in to be a shadowroot with slots set up for each spot where the iframe might go.</p>
 <script>
   document.getElementById('reparenting-iframes-script-text').textContent =
     document.getElementById('reparenting-iframes-script').textContent;
@@ -51,7 +60,6 @@ h2 {
 
 <h2>Loss of selection and focus in &lt;input&gt;s</h2>
 <p>Reparenting &lt;input&gt; elements causes them to lose focus and selection. Focus and select some text in the following input element and then press the enter key - the event listener will reparent the element, showing how focus and selection are lost.</p>
-<p>For input types which support the selection API, this can be fixed by manually saving and restoring selection. For those which don't, such as type=number, selection cannot be restored.</p>
 <script id=input-script>
   const inputContainer = document.createElement('div');
   document.body.appendChild(inputContainer);
@@ -70,41 +78,102 @@ h2 {
 
 </script>
 <div class=script-view id=input-script-text></div>
+<h4>Workaround</h4>
+<p>For input types which support the selection API, this can be fixed by manually saving and restoring selection. However, for input types which don't support selection, such as type=number, selection cannot be restored.</p>
+<script id=input-workaround-script>
+  const inputWorkaroundContainer = document.createElement('div');
+  document.body.appendChild(inputWorkaroundContainer);
+
+  const inputWorkaround = document.createElement('input');
+  inputWorkaround.style.width = '300px';
+  inputWorkaround.value = 'select me and press enter';
+  inputWorkaround.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+
+      const isFocused = document.activeElement === inputWorkaround;
+      const selectionStart = inputWorkaround.selectionStart;
+      const selectionEnd = inputWorkaround.selectionEnd;
+
+      inputWorkaround.remove();
+      inputWorkaroundContainer.appendChild(inputWorkaround);
+
+      if (isFocused) {
+        inputWorkaround.focus();
+        inputWorkaround.setSelectionRange(selectionStart, selectionEnd);
+      }
+    }
+  });
+  inputWorkaroundContainer.appendChild(inputWorkaround);
+
+</script>
+<div class=script-view id=input-workaround-script-text></div>
 <script>
   document.getElementById('input-script-text').textContent =
     document.getElementById('input-script').textContent;
+  document.getElementById('input-workaround-script-text').textContent =
+    document.getElementById('input-workaround-script').textContent;
 </script>
 
 
 <h2>CSS transitions restarting</h2>
 <p>Reparenting elements currently undergoing a CSS transition causes the transition to restart. Click the below element to reparent it and see what happens to the CSS transition.</p>
 <style id=transitionStyle>
-#animation {
-  background-color: red;
-  color: black;
-  width: 200px;
-  transition: width 2s;
+@keyframes slidein {
+  from { margin-left: 0%; }
+  to { margin-left: 90%; }
 }
-#animation:hover {
-  width: 800px;
+.animation {
+  background-color: blue;
+  margin: 20px;
+  border: 5px solid black;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  animation: 3s linear infinite alternate slidein;
 }
 </style>
 <script id=transitionScript>
+  const animationButton = document.createElement('button');
+  animationButton.textContent = 'click to reparent';
+  document.body.appendChild(animationButton);
+
   const animationContainer = document.createElement('div');
   document.body.appendChild(animationContainer);
-
   const animation = document.createElement('div');
-  animation.textContent = 'click me';
-  animation.id = 'animation';
-  animation.onclick = () => {
+  animation.classList.add('animation');
+  animationButton.onclick = () => {
     animation.remove();
     animationContainer.appendChild(animation);
   }
   animationContainer.appendChild(animation);
+
 </script>
 <div class=script-view id=transitionScriptText></div>
+<h4>Workaround</h4>
+<p>Using the new element.getAnimations() API, it is possible to get animation state before reparenting and restore it after reparenting.</p>
+<script id=transitionWorkaroundScript>
+  const animationWorkaroundButton = document.createElement('button');
+  animationWorkaroundButton.textContent = 'click to reparent';
+  document.body.appendChild(animationWorkaroundButton);
+
+  const animationWorkaroundContainer = document.createElement('div');
+  document.body.appendChild(animationWorkaroundContainer);
+  const animationWorkaround = document.createElement('div');
+  animationWorkaround.classList.add('animation');
+  animationWorkaroundButton.onclick = () => {
+    const animationOffset = animationWorkaround.getAnimations()[0].currentTime;
+    animationWorkaround.remove();
+    animationWorkaroundContainer.appendChild(animationWorkaround);
+    animationWorkaround.getAnimations()[0].currentTime = animationOffset;
+  }
+  animationWorkaroundContainer.appendChild(animationWorkaround);
+
+</script>
+<div class=script-view id=transitionWorkaroundScriptText></div>
 <script>
   transitionScriptText.textContent =
-    `<style>${transitionStyle.textContent}</style>
-<script>\n${transitionScript.textContent}<\/script>`;
+    transitionScript.textContent;
+  transitionWorkaroundScriptText.textContent =
+    transitionWorkaroundScript.textContent;
 </script>
